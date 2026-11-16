@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>바벨의 도서관</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@500;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+/* 배치: 밤의 열람실 한 곳. 위에서 아래로 도서 검색 카드, 육각형 방의 서가(한 벽 = 선반 5단 × 책 32권), 펼친 책 한 쪽. 어두운 나무 한 가지 모습으로만 그린다. */
+:root {
+  color-scheme: dark;
+  --wood-dark: #1B130D;
+  --wood: #35241A;
+  --board: #5B4029;
+  --lamp: #2C5246;
+  --brass: #C8A24A;
+  --paper: #F3ECDB;
+  --page: #FBF7EC;
+  --ink: #201B14;
+  --ink-soft: #5E5546;
+  --rule: #D5C9AE;
+  --chalk: #EDE4CF;
+  --chalk-soft: #B3A78F;
+  --stamp: #A63A2B;
+  --mark: #F2D36B;
+  --display: "Hahmlet", "Noto Serif KR", "Noto Serif CJK KR", "Batang", serif;
+  --body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body { background: var(--wood-dark); color: var(--chalk); font: 400 15px/1.6 var(--body); }
+.hall {
+  max-width: 1120px; margin-inline: auto; padding-block: 36px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 36px;
+}
+h1, h2, h3, p, ol { margin: 0; }
+ol { padding: 0; list-style: none; }
+
+.door { display: flex; flex-direction: column; gap: 10px; }
+h1 { font: 800 40px/1.2 var(--display); color: var(--chalk); text-wrap: balance; }
+.epigraph { max-width: 46ch; color: var(--chalk-soft); font: 500 16px/1.7 var(--display); }
+
+h2 { font: 800 20px/1.3 var(--display); }
+button {
+  font: 500 14px/1 var(--body); padding: 10px 14px; border-radius: 3px; cursor: pointer;
+  border: 1px solid var(--board); background: var(--wood); color: var(--chalk);
+}
+button:hover { border-color: var(--brass); }
+button:focus-visible, textarea:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+button.brass { background: var(--brass); border-color: var(--brass); color: var(--ink); font-weight: 600; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* 도서 검색 카드 */
+.catalog {
+  background: var(--paper); color: var(--ink); border-radius: 2px; border-top: 6px solid var(--stamp);
+  padding: 20px 24px 22px; display: flex; flex-direction: column; gap: 12px; max-width: 720px;
+}
+.catalog label { font-size: 13.5px; color: var(--ink-soft); }
+.catalog textarea {
+  width: 100%; resize: vertical; background: var(--page); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: 2px; padding: 10px 12px; font: 400 15px/1.5 var(--mono);
+}
+.catalog button { background: var(--page); color: var(--ink); border-color: var(--rule); }
+.catalog button.brass { background: var(--lamp); border-color: var(--lamp); color: var(--page); }
+.found { font-size: 14.5px; min-height: 1.6em; color: var(--ink); }
+.found.bad { color: var(--stamp); }
+.found b { font-weight: 600; }
+
+/* 서가 */
+.stacks { display: flex; flex-direction: column; gap: 14px; }
+.where { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; justify-content: space-between; }
+.where-name { display: flex; gap: 14px; align-items: center; min-width: 0; }
+.hex { width: 56px; height: 50px; flex: none; }
+.hex .wall { stroke: var(--board); stroke-width: 6; stroke-linecap: round; fill: none; }
+.hex .wall.on { stroke: var(--brass); }
+.hex .gap { stroke: var(--board); stroke-width: 2; stroke-dasharray: 3 5; fill: none; }
+.room-line { color: var(--chalk-soft); font-size: 14px; min-width: 0; }
+.room-line b { color: var(--chalk); font: 500 14px var(--mono); word-break: break-all; }
+.room-form { display: flex; flex-direction: column; gap: 8px; max-width: 720px; }
+.room-form textarea {
+  width: 100%; background: var(--wood); color: var(--chalk); border: 1px solid var(--board); border-radius: 2px;
+  padding: 10px 12px; font: 400 13px/1.5 var(--mono); word-break: break-all; resize: vertical;
+}
+.note { font-size: 13.5px; color: var(--chalk-soft); min-height: 1.6em; }
+.note.bad { color: #F0A08F; }
+.walls button[aria-pressed="true"] { background: var(--brass); border-color: var(--brass); color: var(--ink); font-weight: 600; }
+
+.case { background: var(--wood); border: 1px solid var(--board); border-radius: 3px; padding: 14px 14px 4px; display: flex; flex-direction: column; gap: 6px; }
+.shelf { overflow-x: auto; }
+.shelf-in { min-width: 800px; }
+.spines { display: grid; grid-template-columns: repeat(32, minmax(0, 1fr)); gap: 3px; align-items: end; height: 112px; }
+.spine {
+  padding: 0 0 6px; border: 0; border-radius: 2px 2px 0 0; color: var(--chalk);
+  font: 500 11px/1 var(--mono); display: flex; align-items: flex-end; justify-content: center;
+  border-top: 3px solid rgba(255, 255, 255, 0.18);
+}
+.spine:hover { filter: brightness(1.25); }
+.spine.marked { border-top: 3px solid var(--mark); box-shadow: inset 0 -6px 0 var(--mark); }
+.spine.open { outline: 2px solid var(--mark); outline-offset: 1px; transform: translateY(-6px); }
+.plank { height: 10px; background: var(--board); border-radius: 1px; }
+.shelf-tag { font-size: 12px; color: var(--chalk-soft); padding: 3px 0 8px; }
+
+/* 펼친 책 */
+.book {
+  background: var(--page); color: var(--ink); border-radius: 2px; align-self: center; max-width: 100%;
+  padding: 22px 30px 26px; display: flex; flex-direction: column; gap: 14px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+.running { display: flex; flex-wrap: wrap; gap: 4px 20px; justify-content: space-between; align-items: baseline; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+.book-title { font: 800 18px/1.3 var(--display); color: var(--ink); word-break: break-all; }
+.book-where { font-size: 13px; color: var(--ink-soft); }
+#page { margin: 0; width: calc(80ch + 1px); max-width: 100%; font: 400 13px/1.5 var(--mono); white-space: break-spaces; word-break: break-all; }
+mark { background: var(--mark); color: var(--ink); border-radius: 1px; }
+.turn { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--rule); }
+.turn button { background: var(--paper); color: var(--ink); border-color: var(--rule); }
+.folio { font: 500 14px var(--mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+.turn input { width: 5.5em; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 2px; background: var(--paper); color: var(--ink); font: 400 14px var(--mono); }
+
+/* 사서의 비밀 */
+.secret { border-top: 1px solid var(--board); padding-top: 14px; }
+.secret summary { cursor: pointer; color: var(--chalk-soft); font-size: 13.5px; width: fit-content; }
+.secret-in { display: flex; flex-direction: column; gap: 20px; padding-top: 16px; }
+.secret-in > p { max-width: 64ch; }
+.calc li { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 4px 20px; padding: 10px 0; border-bottom: 1px solid var(--board); }
+.calc .what { font-weight: 500; }
+.calc .how { color: var(--chalk-soft); font-size: 13.5px; }
+.calc .val { font: 400 13px/1.6 var(--mono); word-break: break-all; }
+.check { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 20px; padding: 14px 0; border-top: 1px solid var(--board); align-items: start; }
+.check h3 { font: 600 15px/1.4 var(--body); }
+.check p { color: var(--chalk-soft); font-size: 13.5px; max-width: 62ch; }
+.out { grid-column: 1 / -1; font: 400 13px/1.7 var(--mono); overflow-x: auto; white-space: pre; color: var(--chalk-soft); }
+.out.done { color: var(--chalk); }
+.out .ok { color: #9FD3B0; font-weight: 500; }
+.out .bad { color: #F0A08F; font-weight: 500; }
+
+@media (max-width: 560px) {
+  h1 { font-size: 32px; }
+  .book { padding: 16px 16px 20px; }
+  .catalog { padding: 16px 16px 18px; }
+  .calc li, .check { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: no-preference) { .spine { transition: transform 0.15s ease; } }
+</style>
+
+</head>
+<body>
+<div class="hall">
+  <header class="door">
+    <h1>바벨의 도서관</h1>
+    <p class="epigraph">쓰일 수 있는 모든 글이 이 서가 어딘가에 꽂혀 있다. 당신이 이미 쓴 글도, 아직 쓰지 않은 글도.</p>
+  </header>
+
+  <section class="catalog" aria-labelledby="h-find">
+    <h2 id="h-find">도서 검색</h2>
+    <label for="q">찾을 글 (영어 소문자, 띄어쓰기, 쉼표, 마침표 · 3,200자까지)</label>
+    <textarea id="q" rows="3" spellcheck="false">hello world</textarea>
+    <div class="row">
+      <button class="brass" id="btn-find" type="button">이 글만 적힌 쪽 찾기</button>
+      <button id="btn-other" type="button">다른 책에서도 찾기</button>
+      <button id="btn-back" type="button" hidden>찾은 쪽으로 돌아가기</button>
+    </div>
+    <p class="found" id="found" aria-live="polite">어떤 글이든 이 도서관 어딘가에 있다. 적고 찾아보면 된다.</p>
+  </section>
+
+  <section class="stacks" aria-labelledby="h-stacks">
+    <div class="where">
+      <div class="where-name">
+        <svg class="hex" viewBox="0 0 56 50" aria-hidden="true">
+          <path class="gap" d="M16 4 H40"></path><path class="gap" d="M16 46 H40"></path>
+          <path class="wall" id="hw0" d="M4 25 L16 4"></path>
+          <path class="wall" id="hw1" d="M40 4 L52 25"></path>
+          <path class="wall" id="hw2" d="M52 25 L40 46"></path>
+          <path class="wall" id="hw3" d="M16 46 L4 25"></path>
+        </svg>
+        <div>
+          <h2 id="h-stacks">서가</h2>
+          <p class="room-line">육각형 방 <b id="room-name"></b></p>
+        </div>
+      </div>
+      <div class="row">
+        <button id="btn-room-prev" type="button">앞 방</button>
+        <button id="btn-room-next" type="button">옆 방</button>
+        <button id="btn-room-rand" type="button">아무 방으로</button>
+        <button id="btn-room-form" type="button" aria-expanded="false">방 이름으로 가기</button>
+      </div>
+    </div>
+    <div class="room-form" id="room-form" hidden>
+      <label class="note" for="room">방 이름 (숫자와 영어 소문자)</label>
+      <textarea id="room" rows="3" spellcheck="false"></textarea>
+      <div class="row"><button class="brass" id="btn-room-go" type="button">이 방으로 가기</button><button id="btn-room-copy" type="button">지금 방 이름 복사</button></div>
+    </div>
+    <p class="note" id="note" aria-live="polite">방마다 벽이 넷, 벽마다 선반이 다섯, 선반마다 책이 서른두 권, 책마다 410쪽이다. 책등을 누르면 펼쳐진다.</p>
+    <div class="row walls" id="walls"></div>
+    <div class="case" id="case"></div>
+  </section>
+
+  <section class="book" id="book" aria-label="펼친 책">
+    <div class="running">
+      <span class="book-title" id="book-title"></span>
+      <span class="book-where" id="book-where"></span>
+    </div>
+    <pre id="page"></pre>
+    <div class="turn">
+      <div class="row">
+        <button id="btn-prev" type="button">앞 쪽</button>
+        <span class="folio" id="folio"></span>
+        <button id="btn-next" type="button">다음 쪽</button>
+      </div>
+      <div class="row">
+        <label class="book-where" for="page-no">쪽 번호</label>
+        <input id="page-no" type="number" min="1" max="410" value="1">
+        <button id="btn-page" type="button">펴기</button>
+        <button id="btn-any" type="button">아무 책이나 펼치기</button>
+      </div>
+    </div>
+  </section>
+
+  <details class="secret">
+    <summary>사서의 비밀</summary>
+    <div class="secret-in">
+      <p>사실 이 서가는 비어 있다. 책은 한 권도 저장되어 있지 않다. 책을 펼치는 순간 방, 벽, 선반, 책, 쪽 번호를 수 하나(주소)로 바꾸고, 그 수에 a를 곱하고 b를 더한 뒤 쪽수 전체 N으로 나눈 나머지를 구해, 29진법으로 글자로 옮겨 적는다. 글을 찾을 때는 이 계산을 거꾸로 한다.</p>
+      <div>
+        <h2 id="calc-dir"></h2>
+        <ol class="calc" id="calc"></ol>
+      </div>
+      <div>
+        <div class="check">
+          <div><h3>만들고 다시 찾으면 원래 주소로 돌아오는가</h3><p>아무 주소 100개로 쪽을 만든 다음, 그 쪽으로 주소를 다시 찾는다.</p></div>
+          <button id="btn-trip" type="button">검사하기</button>
+          <div class="out" id="out-trip">아직 검사하지 않았다.</div>
+        </div>
+        <div class="check">
+          <div><h3>곱하는 수 a가 29의 배수라면</h3><p>a를 29 × 1000으로 바꾸고 0번 주소와 N÷29번 주소의 쪽을 만든다.</p></div>
+          <button id="btn-bad" type="button">계산해 보기</button>
+          <div class="out" id="out-bad">아직 계산하지 않았다.</div>
+        </div>
+        <div class="check">
+          <div><h3>곱하는 수 a가 N보다 작다면</h3><p>a를 3을 5,000번 곱한 수, b를 5를 3,000번 곱한 수로 줄이고 0, 1, 2번 주소의 앞 60자를 본다.</p></div>
+          <button id="btn-small" type="button">계산해 보기</button>
+          <div class="out" id="out-small">아직 계산하지 않았다.</div>
+        </div>
+      </div>
+      <p class="note">쪽 = g(f(주소)) · f(x) = (a × x + b)를 N으로 나눈 나머지 · a는 3을 10,000번, b는 5를 8,000번, N은 29를 3,200번 곱한 수 · g는 29진법으로 글자 바꾸기</p>
+    </div>
+  </details>
+</div>
+
+<script>
+// CORE START
+const GLYPHS = "abcdefghijklmnopqrstuvwxyz ,.";   // 29개: a=0 … 마침표=28
+const LEN = 3200;                                  // 한 쪽의 글자 수
+const N = 29n ** 3200n;                            // 쪽 전체 개수
+const A = 3n ** 10000n;                            // 곱하는 수: 29의 배수가 아니고 N보다 크다
+const B = 5n ** 8000n;                             // 더하는 수 (평행이동)
+
+// g의 역함수: 글자 → 수 (29진법으로 읽기)
+function textToNum(text) {
+  let n = 0n;
+  for (const c of text) n = n * 29n + BigInt(GLYPHS.indexOf(c));
+  return n;
+}
+// g: 수 → 글자 (29로 나눈 나머지가 맨 끝 글자)
+function numToText(n, len) {
+  const out = new Array(len);
+  for (let i = len - 1; i >= 0; i--) { out[i] = GLYPHS[Number(n % 29n)]; n = n / 29n; }
+  return out.join("");
+}
+// f: 주소 → 쪽 번호 (곱해서 섞기)
+function shuffle(x, a = A, b = B) { return (a * x + b) % N; }
+
+// a에 곱하면 N으로 나눈 나머지가 1이 되는 수 a' (유클리드 호제법)
+function inverseOf(a, m) {
+  let r0 = m, r1 = a % m, t0 = 0n, t1 = 1n;
+  while (r1 !== 0n) {
+    const q = r0 / r1;
+    [r0, r1] = [r1, r0 - q * r1];
+    [t0, t1] = [t1, t0 - q * t1];
+  }
+  if (r0 !== 1n) return null;          // a'가 없다 = 일대일대응이 아니다
+  return ((t0 % m) + m) % m;
+}
+const A_INV = inverseOf(A, N);
+
+// f의 역함수: b를 빼고 a'를 곱한다
+function unshuffle(y) { return (((A_INV * (y - B)) % N) + N) % N; }
+
+// 만들기: 주소 → f → g → 쪽
+function pageAt(addr) { return numToText(shuffle(addr), LEN); }
+// 찾기: 쪽 → g의 역함수 → f의 역함수 → 주소 (만들 때의 반대 순서)
+function addressOf(page) { return unshuffle(textToNum(page)); }
+
+// 자리 이름 ↔ 주소: 방마다 벽 4, 벽마다 선반 5, 선반마다 책 32, 책마다 410쪽
+const ROOM_SIZE = 262400n;             // 4 × 5 × 32 × 410
+function locate(addr) {
+  const room = addr / ROOM_SIZE;
+  let r = Number(addr % ROOM_SIZE);
+  const page = r % 410; r = (r - page) / 410;
+  const vol = r % 32; r = (r - vol) / 32;
+  const shelf = r % 5;
+  const wall = (r - shelf) / 5;
+  return { room, wall, shelf, vol, page };
+}
+function addressAt(l) { return l.room * ROOM_SIZE + BigInt(((l.wall * 5 + l.shelf) * 32 + l.vol) * 410 + l.page); }
+function roomName(room) { return room.toString(36); }
+function roomFromName(name) {
+  let n = 0n;
+  for (const c of name) n = n * 36n + BigInt(parseInt(c, 36));
+  return n;
+}
+// CORE END
+
+const $ = (id) => document.getElementById(id);
+const CLOTH = ["#7A2E2A", "#2F4F6B", "#3F6B52", "#7B5D26", "#5B3A66", "#2E5E63", "#6B4A32"];
+const LAST_ROOM = (N - 1n) / ROOM_SIZE;
+let current = 0n;                 // 펼친 쪽의 주소
+let view = { room: 0n, wall: 0 }; // 지금 보고 있는 방과 벽
+let lastSearch = null;
+let foundMark = null;             // 마지막으로 찾은 쪽에 꽂아 둔 책갈피
+
+function randomAddress() {
+  let s = "";
+  for (let i = 0; i < 4700; i++) s += Math.floor(Math.random() * 10);
+  return BigInt(s) % N;
+}
+function shortNum(n) {
+  const s = n.toString();
+  if (s.length <= 30) return s;
+  return s.slice(0, 14) + " … " + s.slice(-14) + "  (" + s.length.toLocaleString("ko-KR") + "자리)";
+}
+function shortRoom(room) {
+  const s = roomName(room);
+  if (s.length <= 28) return s;
+  return s.slice(0, 12) + " … " + s.slice(-12) + " (" + s.length.toLocaleString("ko-KR") + "자)";
+}
+function placeText(l) { return (l.wall + 1) + "번 벽 · " + (l.shelf + 1) + "번 선반 · " + (l.vol + 1) + "번 책"; }
+function note(text, bad) { const el = $("note"); el.textContent = text; el.className = "note" + (bad ? " bad" : ""); }
+
+function renderWalls() {
+  const box = $("walls");
+  box.textContent = "";
+  for (let w = 0; w < 4; w++) {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = (w + 1) + "번 벽";
+    b.setAttribute("aria-pressed", String(w === view.wall));
+    b.addEventListener("click", () => { view.wall = w; renderStacks(); });
+    box.append(b);
+    $("hw" + w).setAttribute("class", "wall" + (w === view.wall ? " on" : ""));
+  }
+}
+function renderStacks() {
+  renderWalls();
+  $("room-name").textContent = shortRoom(view.room);
+  if (!$("room-form").hidden) $("room").value = roomName(view.room);
+  const here = locate(current);
+  const mark = foundMark ? locate(foundMark.addr) : null;
+  const seed = Number(view.room % 97n);
+  const box = $("case");
+  box.textContent = "";
+  for (let s = 0; s < 5; s++) {
+    const shelf = document.createElement("div"); shelf.className = "shelf";
+    const inner = document.createElement("div"); inner.className = "shelf-in";
+    const spines = document.createElement("div"); spines.className = "spines";
+    for (let v = 0; v < 32; v++) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "spine"; b.textContent = v + 1;
+      b.setAttribute("aria-label", (s + 1) + "번 선반 " + (v + 1) + "번 책");
+      const k = v * 37 + s * 11 + view.wall * 5 + seed;
+      b.style.background = CLOTH[(v * v * 5 + v * 3 + s * 13 + view.wall * 29 + seed) % CLOTH.length];
+      b.style.height = (74 + (k % 5) * 8) + "px";
+      if (here.room === view.room && here.wall === view.wall && here.shelf === s && here.vol === v) b.classList.add("open");
+      if (mark && mark.room === view.room && mark.wall === view.wall && mark.shelf === s && mark.vol === v) b.classList.add("marked");
+      b.addEventListener("click", () => openBook(s, v));
+      spines.append(b);
+    }
+    const plank = document.createElement("div"); plank.className = "plank";
+    const tag = document.createElement("div"); tag.className = "shelf-tag"; tag.textContent = (s + 1) + "번 선반";
+    inner.append(spines, plank, tag); shelf.append(inner); box.append(shelf);
+  }
+}
+
+function renderPage(text, hl) {
+  const pre = $("page");
+  pre.textContent = "";
+  if (!hl) { pre.textContent = text; return; }
+  pre.append(text.slice(0, hl.start));
+  const m = document.createElement("mark");
+  m.textContent = text.slice(hl.start, hl.start + hl.len);
+  pre.append(m, text.slice(hl.start + hl.len));
+}
+function renderCalc(dir, rows) {
+  $("calc-dir").textContent = dir;
+  const ol = $("calc");
+  ol.textContent = "";
+  for (const [what, how, val] of rows) {
+    const li = document.createElement("li");
+    const left = document.createElement("div");
+    const w = document.createElement("div"); w.className = "what"; w.textContent = what;
+    const h = document.createElement("div"); h.className = "how"; h.textContent = how;
+    left.append(w, h);
+    const v = document.createElement("div"); v.className = "val"; v.textContent = val;
+    li.append(left, v); ol.append(li);
+  }
+}
+
+// 책갈피는 그 방을 떠나면 빠진다
+function dropMarkIfLeaving(room) {
+  if (foundMark && locate(foundMark.addr).room !== room) {
+    foundMark = null;
+    $("btn-back").hidden = true;
+  }
+}
+
+// 주소의 쪽을 펼친다
+function openAddress(addr, hl, search) {
+  current = addr;
+  const l = locate(addr);
+  dropMarkIfLeaving(l.room);
+  view = { room: l.room, wall: l.wall };
+  if (!hl && foundMark && foundMark.addr === addr) hl = { start: foundMark.start, len: foundMark.len };
+  const y = shuffle(addr);
+  const text = numToText(y, LEN);
+  const first = l.page === 0 ? text : pageAt(addr - BigInt(l.page));
+  const title = first.slice(0, 18).trim();
+  $("book-title").textContent = title ? title : "제목 없는 책";
+  const fm = foundMark ? locate(foundMark.addr) : null;
+  const sameBook = fm && fm.room === l.room && fm.wall === l.wall && fm.shelf === l.shelf && fm.vol === l.vol;
+  $("book-where").textContent = placeText(l) + (sameBook && fm.page !== l.page ? " · 찾은 글은 이 책 " + (fm.page + 1) + "쪽에 있다" : "");
+  $("folio").textContent = (l.page + 1) + " / 410쪽";
+  $("page-no").value = l.page + 1;
+  renderPage(text, hl);
+  renderStacks();
+  lastSearch = search || null;
+  if (search) {
+    renderCalc("지금 한 계산: 찾기 (글 → 자리)", [
+      ["① 쪽 완성", search.fillHow, "글 " + search.len.toLocaleString("ko-KR") + "자 + 채움 " + (LEN - search.len).toLocaleString("ko-KR") + "자 = 3,200자"],
+      ["② 글자를 수로", "g를 거꾸로: 29진법으로 읽는다", shortNum(y)],
+      ["③ 되섞기", "f를 거꾸로: b를 빼고 a′를 곱한 뒤 N으로 나눈 나머지", shortNum(addr)],
+      ["④ 자리 이름", "주소를 방, 벽, 선반, 책, 쪽으로 나눈다", placeText(l) + " · " + (l.page + 1) + "쪽"],
+    ]);
+  } else {
+    renderCalc("지금 한 계산: 만들기 (자리 → 쪽)", [
+      ["① 자리를 수로", "방, 벽, 선반, 책, 쪽을 주소 하나로 합친다", shortNum(addr)],
+      ["② 섞기", "f: a를 곱하고 b를 더한 뒤 N으로 나눈 나머지", shortNum(y)],
+      ["③ 수를 글자로", "g: 29로 계속 나누며 나머지를 글자로 바꾼다", text.slice(0, 40) + " …  (3,200자)"],
+    ]);
+  }
+}
+function openAt(l) {
+  const addr = addressAt(l);
+  if (addr >= N) return note("그 자리는 비어 있다. 이 방은 도서관의 마지막 방이라 책이 한 권, 한 쪽뿐이다.", true);
+  openAddress(addr);
+  note((l.shelf + 1) + "번 선반에서 " + (l.vol + 1) + "번 책을 꺼냈다.");
+}
+// 책등을 눌러 책을 꺼낸다. 책갈피가 꽂힌 책이면 그 쪽이 펼쳐진다.
+function openBook(shelf, vol) {
+  const l = { room: view.room, wall: view.wall, shelf, vol, page: 0 };
+  if (foundMark) {
+    const fm = locate(foundMark.addr);
+    if (fm.room === l.room && fm.wall === l.wall && fm.shelf === shelf && fm.vol === vol) {
+      openAddress(foundMark.addr);
+      note("책갈피를 꽂아 둔 " + (fm.page + 1) + "쪽이 펼쳐졌다. 찾은 글은 이 쪽에 있다.");
+      return;
+    }
+  }
+  openAt(l);
+}
+function toBook() {
+  const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  $("book").scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "start" });
+}
+
+function cleanQuery() {
+  const raw = $("q").value.toLowerCase().replace(/[\r\n\t]/g, " ");
+  if (raw.length === 0) return { error: "찾을 글을 적어야 한다." };
+  if (raw.length > LEN) return { error: "한 쪽은 3,200자다. 지금 " + raw.length.toLocaleString("ko-KR") + "자다." };
+  const wrong = [...new Set([...raw].filter((c) => !GLYPHS.includes(c)))];
+  if (wrong.length) return { error: "이 도서관의 책에 없는 글자가 있다: " + wrong.slice(0, 8).join(" ") + "  (a~z, 띄어쓰기, 쉼표, 마침표만 쓰인다)" };
+  return { text: raw };
+}
+function found(html, bad) { const el = $("found"); el.textContent = ""; el.className = "found" + (bad ? " bad" : ""); el.append(...html); }
+function b(text) { const el = document.createElement("b"); el.textContent = text; return el; }
+
+function search(scatter) {
+  const q = cleanQuery();
+  if (q.error) return found([q.error], true);
+  let page, start = 0;
+  if (scatter) {
+    let filler = "";
+    for (let i = 0; i < LEN; i++) filler += GLYPHS[Math.floor(Math.random() * 29)];
+    start = Math.floor(Math.random() * (LEN - q.text.length + 1));
+    page = filler.slice(0, start) + q.text + filler.slice(start + q.text.length);
+  } else {
+    page = q.text + " ".repeat(LEN - q.text.length);
+  }
+  const addr = addressOf(page);
+  found(["서가를 살피는 중…"]);
+  setTimeout(() => {
+    const l = locate(addr);
+    foundMark = { addr, start, len: q.text.length };
+    openAddress(addr, { start, len: q.text.length }, { len: q.text.length, fillHow: scatter ? "남은 칸을 아무 글자로 채우고 글을 아무 자리에 둔다" : "남은 칸을 띄어쓰기로 채운다" });
+    found(["찾았다. ", b(placeText(l) + " · " + (l.page + 1) + "쪽"), scatter ? "에 다른 글자들 사이에 적혀 있다. 누를 때마다 다른 책이 나온다." : "에 이 글만 적혀 있다. 방까지 같아야 같은 자리다. 이 방의 이름은 " + roomName(l.room).length.toLocaleString("ko-KR") + "자다."]);
+    note("찾은 책이 있는 방으로 옮겨 왔다. 그 책에 책갈피를 꽂아 두었다.");
+    $("btn-back").hidden = false;
+    toBook();
+  }, 650);
+}
+$("btn-find").addEventListener("click", () => search(false));
+$("btn-other").addEventListener("click", () => search(true));
+$("btn-back").addEventListener("click", () => { if (foundMark) { openAddress(foundMark.addr); note("책갈피를 꽂아 둔 쪽으로 돌아왔다."); toBook(); } });
+
+$("btn-prev").addEventListener("click", () => openAddress((current - 1n + N) % N));
+$("btn-next").addEventListener("click", () => openAddress((current + 1n) % N));
+$("btn-page").addEventListener("click", () => {
+  const p = Math.floor(Number($("page-no").value));
+  if (!(p >= 1 && p <= 410)) return note("쪽 번호는 1부터 410까지다.", true);
+  const l = locate(current); l.page = p - 1;
+  openAt(l);
+});
+$("btn-any").addEventListener("click", () => { openAddress(randomAddress()); note("아무 방에 들어가 아무 책이나 펼쳤다."); });
+
+function moveRoom(room) {
+  if (room < 0n || room > LAST_ROOM) return note("그런 방은 없다.", true);
+  dropMarkIfLeaving(room);
+  view = { room, wall: view.wall };
+  renderStacks();
+  note("방을 옮겼다. 책등을 누르면 펼쳐진다.");
+}
+$("btn-room-prev").addEventListener("click", () => moveRoom(view.room - 1n));
+$("btn-room-next").addEventListener("click", () => moveRoom(view.room + 1n));
+$("btn-room-rand").addEventListener("click", () => moveRoom(randomAddress() / ROOM_SIZE));
+$("btn-room-form").addEventListener("click", () => {
+  const f = $("room-form"); f.hidden = !f.hidden;
+  $("btn-room-form").setAttribute("aria-expanded", String(!f.hidden));
+  if (!f.hidden) $("room").value = roomName(view.room);
+});
+$("btn-room-go").addEventListener("click", () => {
+  const raw = $("room").value.toLowerCase().replace(/\s/g, "");
+  if (!/^[0-9a-z]+$/.test(raw)) return note("방 이름은 숫자와 영어 소문자로만 되어 있다.", true);
+  moveRoom(roomFromName(raw));
+});
+$("btn-room-copy").addEventListener("click", async () => {
+  const el = $("room"); el.value = roomName(view.room);
+  try { await navigator.clipboard.writeText(el.value); note("방 이름을 복사했다."); }
+  catch (e) { el.focus(); el.select(); note("방 이름을 선택해 두었다. 직접 복사하면 된다."); }
+});
+
+function line(out, text, cls) {
+  const s = document.createElement("span");
+  if (cls) s.className = cls;
+  s.textContent = text + "\n";
+  out.append(s);
+}
+$("btn-trip").addEventListener("click", () => {
+  const out = $("out-trip");
+  out.textContent = "검사하는 중이다.";
+  setTimeout(() => {
+    let ok = 0;
+    for (let i = 0; i < 100; i++) { const x = randomAddress(); if (addressOf(pageAt(x)) === x) ok++; }
+    out.textContent = ""; out.className = "out done";
+    line(out, "100개 중 " + ok + "개가 원래 주소로 돌아왔다.", ok === 100 ? "ok" : "bad");
+    line(out, "a × a′를 N으로 나눈 나머지 = " + ((A * A_INV) % N).toString());
+  }, 30);
+});
+$("btn-bad").addEventListener("click", () => {
+  const out = $("out-bad");
+  const a = 29n * 1000n;
+  const p0 = numToText(shuffle(0n, a, B), LEN);
+  const p1 = numToText(shuffle(N / 29n, a, B), LEN);
+  out.textContent = ""; out.className = "out done";
+  line(out, "0번 주소      " + p0.slice(0, 60));
+  line(out, "N÷29번 주소   " + p1.slice(0, 60));
+  line(out, p0 === p1 ? "3,200자가 전부 같다. 서로 다른 두 주소가 한 쪽으로 겹쳤다." : "두 쪽이 다르다.", p0 === p1 ? "bad" : "ok");
+  line(out, "a′를 구할 수 있는가: " + (inverseOf(a, N) === null ? "없다. 그래서 검색도 만들 수 없다." : "있다."));
+});
+$("btn-small").addEventListener("click", () => {
+  const out = $("out-small");
+  const a = 3n ** 5000n, bb = 5n ** 3000n;
+  out.textContent = ""; out.className = "out done";
+  line(out, "작은 a, b (둘 다 N보다 작다)");
+  for (const x of [0n, 1n, 2n]) line(out, "  " + x + "번  " + numToText(shuffle(x, a, bb), LEN).slice(0, 60));
+  line(out, "이 도서관의 a, b");
+  for (const x of [0n, 1n, 2n]) line(out, "  " + x + "번  " + pageAt(x).slice(0, 60));
+  line(out, "작은 a는 N을 넘지 못해 나머지로 접히지 않는다. 앞자리가 전부 0, 곧 글자 a로 남는다.", "bad");
+});
+
+openAddress(0n);
+</script>
+
+</body>
+</html>
