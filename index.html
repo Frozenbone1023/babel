@@ -405,10 +405,19 @@ function renderCalc(dir, rows) {
   }
 }
 
+// 책갈피는 그 방을 떠나면 빠진다
+function dropMarkIfLeaving(room) {
+  if (foundMark && locate(foundMark.addr).room !== room) {
+    foundMark = null;
+    $("btn-back").hidden = true;
+  }
+}
+
 // 주소의 쪽을 펼친다
 function openAddress(addr, hl, search) {
   current = addr;
   const l = locate(addr);
+  dropMarkIfLeaving(l.room);
   view = { room: l.room, wall: l.wall };
   if (!hl && foundMark && foundMark.addr === addr) hl = { start: foundMark.start, len: foundMark.len };
   const y = shuffle(addr);
@@ -514,6 +523,7 @@ $("btn-any").addEventListener("click", () => { openAddress(randomAddress()); not
 
 function moveRoom(room) {
   if (room < 0n || room > LAST_ROOM) return note("그런 방은 없다.", true);
+  dropMarkIfLeaving(room);
   view = { room, wall: view.wall };
   renderStacks();
   note("방을 옮겼다. 책등을 누르면 펼쳐진다.");
