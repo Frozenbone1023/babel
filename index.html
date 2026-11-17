@@ -114,6 +114,12 @@ button.brass { background: var(--brass); border-color: var(--brass); color: var(
 .book-where { font-size: 13px; color: var(--ink-soft); }
 #page { margin: 0; width: calc(80ch + 1px); max-width: 100%; font: 400 13px/1.5 var(--mono); white-space: break-spaces; word-break: break-all; }
 mark { background: var(--mark); color: var(--ink); border-radius: 1px; }
+mark.word { background: #D6E8DD; color: var(--ink); border-bottom: 2px solid var(--lamp); font-weight: 500; }
+.finds { display: flex; flex-direction: column; gap: 10px; padding: 12px 0 2px; border-top: 1px solid var(--rule); font-size: 14px; color: var(--ink-soft); }
+.finds button { background: var(--paper); color: var(--ink); border-color: var(--rule); }
+.finds button[aria-pressed="true"] { background: var(--lamp); border-color: var(--lamp); color: var(--page); }
+.finds b { color: var(--ink); font-family: var(--mono); font-weight: 500; }
+.finds .new { color: var(--stamp); font-weight: 600; }
 .turn { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--rule); }
 .turn button { background: var(--paper); color: var(--ink); border-color: var(--rule); }
 .folio { font: 500 14px var(--mono); font-variant-numeric: tabular-nums; color: var(--ink); }
@@ -203,6 +209,17 @@ mark { background: var(--mark); color: var(--ink); border-radius: 1px; }
       <span class="book-where" id="book-where"></span>
     </div>
     <pre id="page"></pre>
+    <div class="finds" aria-live="polite">
+      <div class="row">
+        <button id="btn-words" type="button" aria-pressed="true">낱말 찾기 켜짐</button>
+        <span id="find-line"></span>
+      </div>
+      <div class="row">
+        <span id="best-line"></span>
+        <button id="btn-best" type="button" hidden>그 쪽으로 가기</button>
+        <button id="btn-hunt" type="button">사서에게 부탁하기: 300쪽 훑어서 가장 긴 낱말 찾기</button>
+      </div>
+    </div>
     <div class="turn">
       <div class="row">
         <button id="btn-prev" type="button">앞 쪽</button>
@@ -370,7 +387,7 @@ function renderStacks() {
       const k = v * 37 + s * 11 + view.wall * 5 + seed;
       b.style.background = CLOTH[(v * v * 5 + v * 3 + s * 13 + view.wall * 29 + seed) % CLOTH.length];
       b.style.height = (74 + (k % 5) * 8) + "px";
-      if (here.room === view.room && here.wall === view.wall && here.shelf === s && here.vol === v) b.classList.add("open");
+      if (!leftRoom && here.room === view.room && here.wall === view.wall && here.shelf === s && here.vol === v) b.classList.add("open");
       if (mark && mark.room === view.room && mark.wall === view.wall && mark.shelf === s && mark.vol === v) b.classList.add("marked");
       b.addEventListener("click", () => openBook(s, v));
       spines.append(b);
@@ -381,9 +398,74 @@ function renderStacks() {
   }
 }
 
+// 낱말 찾기: 페이지 안에 숨은 영어 낱말(4자 이상)을 찾는다
+const WORDS = new Set("able about above accept across action actor admit adult after again against agent agree ahead alive allow almost alone along already also always among amount angry animal answer anyone apart appear apple area argue army around arrive artist asleep attack aunt autumn avoid away baby back ball band bank base basic bath battle beach bear beat beauty because become beer before begin behind being believe bell belong below belt bench best better between beyond bike bird birth bite black blade blame blank blind block blood blow blue board boat body bone book boot border born boss both bottle bottom bowl brain branch brave bread break breath bridge brief bright bring broad broken brother brown build burn busy butter button cake call calm camera camp candle capital card care careful carry case cash castle catch cause cell center chain chair chance change chapter charge cheap check cheese chest chicken chief child choice choose church circle city claim class clean clear clever climb clock close cloth cloud club coast coat code coffee cold collect color come common cook cool copy corner cost cotton could count country couple courage course cover crazy cream create crime cross crowd crown cure curve dance danger dark date daughter dead deal dear death debt decide deep deer degree delay depend desert design desk detail devil diet differ dinner direct dirt dirty dish doctor door double doubt down dragon draw dream dress drink drive drop drug duck during dust duty each eager early earn earth east easy edge effect effort eight either else empty enemy energy engine enjoy enough enter entire equal error escape even evening event ever every evil exact example exist expect expert explain face fact factory fail fair faith fall false family famous farm fast father fault favor fear feather feed feel field fight figure fill film final find fine finger finish fire firm first fish five flag flame flat flight floor flower fold follow food fool foot force forest forget fork form forward four free fresh friend frog front fruit full funny future gain game garden gate gather general gentle ghost giant gift girl give glad glass global goal gold golf good grade grain grand grass great green grey ground group grow guard guess guest guide guilty guitar habit hair half hall hand handle hang happen happy hard harm hate have head health hear heart heat heaven heavy height hello help hero hide high hill hire history hold hole holiday home honest honey hope horse hospital host hotel hour house human humor hunt hurry hurt husband idea image inch income indeed inside into iron island issue item jacket join joke journey judge juice jump jungle just keep kick kill kind king kiss kitchen knee knife knock know lack lady lake lamp land large last late laugh lazy lead leaf learn least leave left legal lemon less lesson letter level library life lift light like limit line lion list listen little live local lock long look lord lose loss lost loud love lovely luck lunch machine magic mail main major make manage many mark market marry master match matter maybe meal mean meat medal meet member memory mental menu mess metal middle might mild milk mind mine minute mirror miss mistake model modern moment money monkey month moon moral more morning most mother motor mount mouse mouth move movie much music must name narrow nation nature near neck need nerve never news next nice night nine noble noise none normal north nose note nothing notice novel number nurse object ocean offer office often once only open opera opinion orange order other ought outer outside oven over owner pack page pain paint pair palace pale paper parent park part party pass past path peace pencil people pepper perfect period person phone photo piano pick picture piece pile pilot pink pipe place plain plan planet plant plate play please plenty pocket poem poet point police pool poor popular port post pound power praise pray present press pretty price pride prince print prison prize problem prove public pull pupil pure push queen quick quiet quite rabbit race radio rain raise range rare rate rather reach read ready real reason record relax remain remove rent repair repeat reply rest result return rich ride right ring rise risk river road rock role roll roof room root rope rose rough round route royal rule ruler rush safe sail salt same sand save scale scene school science score search season seat second secret seed seem sell send sense serve seven shade shadow shake shall shape share sharp sheep shelf shell shine ship shirt shock shoe shoot shop short shot should shout show shut sick side sign silence silver simple since sing single sister size skill skin sleep slide slow small smart smell smile smoke snake snow soap social sock soft soil soldier some song soon sorry sort soul sound soup south space speak special speed spell spend spirit sport spot spread spring square staff stage stair stamp stand star start state station stay steal steam step stick still stone stop store storm story strange street strike strong student study stupid style subject sugar summer supper sure surface sweet swim table tail take tale talk tall taste teach team tear tell tent term test than thank that theater then theory there thick thief thin thing think third thirsty this though thread three throat throw ticket tide tidy tiger time tiny tired title today together tomorrow tone tongue tonight tool tooth total touch tough tour toward tower town track trade train travel treat tree trial trick trip trouble truck true trust truth tune turn twice type ugly uncle under unit until upon upper usual valley value very victory view village visit voice vote wait wake walk wall want warm wash watch water wave weak wealth wear weather wedding week weight welcome well west what wheel when where which while white whole wide wife wild will wind window wine wing winter wise wish with woman wonder wood word work world worry worth would write wrong yard year yellow young youth zero zone".split(" "));
+const WORD_MAX = 8;
+let wordsOn = true;
+let shown = null;                 // 지금 펼친 쪽 { addr, text, hl }
+function findWords(text, hl) {
+  const out = [];
+  for (let i = 0; i < text.length; i++) {
+    if (hl && i >= hl.start && i < hl.start + hl.len) continue;   // 검색한 글 안의 낱말은 세지 않는다
+    for (let L = Math.min(WORD_MAX, text.length - i); L >= 4; L--) {
+      if (hl && i < hl.start && i + L > hl.start) continue;
+      const w = text.substr(i, L);
+      if (WORDS.has(w)) { out.push({ start: i, len: L, word: w }); i += L - 1; break; }
+    }
+  }
+  return out;
+}
+let best = null;
+try { best = JSON.parse(localStorage.getItem("babel-best-word") || "null"); } catch (e) { best = null; }
+function showBest() {
+  const line = $("best-line");
+  line.textContent = "";
+  if (!best) { line.textContent = "내 기록: 아직 없음"; $("btn-best").hidden = true; return; }
+  const bw = document.createElement("b"); bw.textContent = best.word;
+  line.append("내 기록: ", bw, " (" + best.word.length + "자)");
+  $("btn-best").hidden = false;
+}
+function showFinds() {
+  const line = $("find-line");
+  line.textContent = "";
+  if (!wordsOn || !shown) return;
+  const ws = findWords(shown.text, shown.hl).sort((a, b) => b.len - a.len);
+  if (!ws.length) { line.textContent = "이 쪽에서는 아는 낱말을 못 찾았다."; return; }
+  const uniq = [...new Set(ws.map((w) => w.word))];
+  line.append("이 쪽에서 찾은 낱말 " + ws.length + "개: ");
+  uniq.slice(0, 8).forEach((w, i) => { if (i) line.append(", "); const el = document.createElement("b"); el.textContent = w; line.append(el); });
+  if (uniq.length > 8) line.append(" …");
+  if (!best || ws[0].len > best.word.length) {
+    best = { word: ws[0].word, addr: shown.addr.toString() };
+    try { localStorage.setItem("babel-best-word", JSON.stringify(best)); } catch (e) {}
+    const n = document.createElement("span"); n.className = "new"; n.textContent = "  새 기록!";
+    line.append(n);
+    showBest();
+  }
+}
+
 function renderPage(text, hl) {
   const pre = $("page");
   pre.textContent = "";
+  shown = { addr: current, text, hl: hl || null };
+  const spans = hl ? [{ start: hl.start, len: hl.len, cls: "" }] : [];
+  if (wordsOn) for (const w of findWords(text, hl)) spans.push({ start: w.start, len: w.len, cls: "word" });
+  if (spans.length > (hl ? 1 : 0)) {
+    spans.sort((a, b) => a.start - b.start);
+    let pos = 0;
+    for (const sp of spans) {
+      pre.append(text.slice(pos, sp.start));
+      const m = document.createElement("mark");
+      if (sp.cls) m.className = sp.cls;
+      m.textContent = text.slice(sp.start, sp.start + sp.len);
+      pre.append(m);
+      pos = sp.start + sp.len;
+    }
+    pre.append(text.slice(pos));
+    showFinds();
+    return;
+  }
+  showFinds();
   if (!hl) { pre.textContent = text; return; }
   pre.append(text.slice(0, hl.start));
   const m = document.createElement("mark");
@@ -406,10 +488,12 @@ function renderCalc(dir, rows) {
 }
 
 // 책갈피는 그 방을 떠나면 빠진다
+let leftRoom = false;             // 펼친 책이 있는 방을 떠난 적이 있는가
 function dropMarkIfLeaving(room) {
   if (foundMark && locate(foundMark.addr).room !== room) {
     foundMark = null;
     $("btn-back").hidden = true;
+    if (shown && shown.hl) renderPage(shown.text, null);   // 펼친 쪽의 노란 표시도 지운다
   }
 }
 
@@ -418,6 +502,7 @@ function openAddress(addr, hl, search) {
   current = addr;
   const l = locate(addr);
   dropMarkIfLeaving(l.room);
+  leftRoom = false;
   view = { room: l.room, wall: l.wall };
   if (!hl && foundMark && foundMark.addr === addr) hl = { start: foundMark.start, len: foundMark.len };
   const y = shuffle(addr);
@@ -519,11 +604,50 @@ $("btn-page").addEventListener("click", () => {
   const l = locate(current); l.page = p - 1;
   openAt(l);
 });
+$("btn-words").addEventListener("click", () => {
+  wordsOn = !wordsOn;
+  const b = $("btn-words");
+  b.setAttribute("aria-pressed", String(wordsOn));
+  b.textContent = wordsOn ? "낱말 찾기 켜짐" : "낱말 찾기 꺼짐";
+  if (shown) renderPage(shown.text, shown.hl);
+});
+$("btn-best").addEventListener("click", () => {
+  if (!best) return;
+  openAddress(BigInt(best.addr));
+  note("기록을 세운 쪽으로 왔다.");
+  toBook();
+});
+$("btn-hunt").addEventListener("click", () => {
+  const btn = $("btn-hunt");
+  const TOTAL = 300;
+  let n = 0, top = null;
+  btn.disabled = true;
+  function step() {
+    for (let k = 0; k < 15 && n < TOTAL; k++, n++) {
+      const a = randomAddress();
+      for (const w of findWords(pageAt(a), null)) if (!top || w.len > top.w.len) top = { a, w };
+    }
+    $("find-line").textContent = "사서가 서가를 훑는 중… " + n + " / " + TOTAL + "쪽";
+    if (n < TOTAL) { setTimeout(step, 0); return; }
+    btn.disabled = false;
+    if (!top) { $("find-line").textContent = "300쪽을 훑었지만 아는 낱말이 하나도 없었다."; return; }
+    const was = wordsOn;
+    wordsOn = true;
+    $("btn-words").setAttribute("aria-pressed", "true"); $("btn-words").textContent = "낱말 찾기 켜짐";
+    openAddress(top.a);
+    note("사서가 아무 쪽 300장을 훑고, 가장 긴 낱말 " + top.w.word + "이(가) 있는 쪽을 펼쳐 주었다.");
+    toBook();
+  }
+  step();
+});
+showBest();
+
 $("btn-any").addEventListener("click", () => { openAddress(randomAddress()); note("아무 방에 들어가 아무 책이나 펼쳤다."); });
 
 function moveRoom(room) {
   if (room < 0n || room > LAST_ROOM) return note("그런 방은 없다.", true);
   dropMarkIfLeaving(room);
+  if (room !== locate(current).room) leftRoom = true;
   view = { room, wall: view.wall };
   renderStacks();
   note("방을 옮겼다. 책등을 누르면 펼쳐진다.");
